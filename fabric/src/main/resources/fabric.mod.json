@@ -3,13 +3,12 @@
   "id": "cobblemon_pasture_blacklist",
   "version": "${version}",
   "name": "Cobblemon Pasture Blacklist",
-  "description": "This is an example description! Tell everyone what your mod is about!",
+  "description": "Server-side sidemod that prevents blacklisted Pokémon from being placed into a Pasture Block.",
   "authors": [
-    "Me!"
+    "LiquidSilverAce"
   ],
   "contact": {
-    "homepage": "https://fabricmc.net/",
-    "sources": "https://github.com/FabricMC/fabric-example-mod"
+    "sources": "https://github.com/LiquidSilverAce/Cobblemon-Pasture-Blacklist"
   },
   "license": "CC0-1.0",
   "icon": "assets/cobblemon_pasture_blacklist/icon.png",
@@ -30,9 +29,7 @@
     "minecraft": "~1.21.1",
     "java": ">=21",
     "architectury": ">=13.0.8",
-    "fabric-api": "*"
-  },
-  "suggests": {
-    "another-mod": "*"
+    "fabric-api": "*",
+    "cobblemon": "*"
   }
 }

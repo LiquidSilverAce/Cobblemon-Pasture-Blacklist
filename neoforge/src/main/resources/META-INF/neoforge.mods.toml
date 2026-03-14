@@ -1,15 +1,15 @@
 modLoader = "javafml"
 loaderVersion = "[4,)"
 #issueTrackerURL = ""
-license = "Insert License Here"
+license = "CC0-1.0"
 
 [[mods]]
 modId = "cobblemon_pasture_blacklist"
 version = "${version}"
 displayName = "Cobblemon Pasture Blacklist"
-authors = "Me!"
+authors = "LiquidSilverAce"
 description = '''
-This is an example description! Tell everyone what your mod is about!
+Server-side sidemod that prevents blacklisted Pokémon from being placed into a Pasture Block.
 '''
 #logoFile = ""
 
@@ -31,6 +31,13 @@ side = "BOTH"
 modId = "architectury"
 type = "required"
 versionRange = "[13.0.8,)"
+ordering = "AFTER"
+side = "BOTH"
+
+[[dependencies.cobblemon_pasture_blacklist]]
+modId = "cobblemon"
+type = "required"
+versionRange = "[1,)"
 ordering = "AFTER"
 side = "BOTH"
 
