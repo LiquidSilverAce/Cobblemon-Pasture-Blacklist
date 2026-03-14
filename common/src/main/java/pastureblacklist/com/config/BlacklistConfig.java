@@ -60,12 +60,12 @@ public final class BlacklistConfig {
 
                 if (json != null && json.has("blacklistedSpecies")) {
                     for (JsonElement element : json.getAsJsonArray("blacklistedSpecies")) {
-                        config.blacklistedSpecies.add(element.getAsString());
+                        config.blacklistedSpecies.add(element.getAsString().toLowerCase());
                     }
                 }
                 if (json != null && json.has("blacklistedLabels")) {
                     for (JsonElement element : json.getAsJsonArray("blacklistedLabels")) {
-                        config.blacklistedLabels.add(element.getAsString());
+                        config.blacklistedLabels.add(element.getAsString().toLowerCase());
                     }
                 }
                 if (json != null && json.has("blockedMessage")) {
@@ -116,20 +116,36 @@ public final class BlacklistConfig {
     /**
      * Returns {@code true} if the given species resource ID is explicitly blacklisted.
      *
-     * @param speciesId the full resource ID, e.g. {@code "cobblemon:rayquaza"}
+     * <p>Matching is <b>case-insensitive</b>. Config entries may be provided as either a full
+     * resource ID (e.g. {@code "cobblemon:charizard"}) or as a bare species name without the
+     * namespace (e.g. {@code "Charizard"} or {@code "charizard"}). Both forms will correctly
+     * match {@code "cobblemon:charizard"} at runtime.
+     *
+     * @param speciesId the full resource ID returned by Cobblemon, e.g. {@code "cobblemon:rayquaza"}
      */
     public boolean isSpeciesBlacklisted(String speciesId) {
-        return blacklistedSpecies.contains(speciesId);
+        String normalized = speciesId.toLowerCase();
+        // Match full resource ID (e.g. "cobblemon:charizard").
+        if (blacklistedSpecies.contains(normalized)) {
+            return true;
+        }
+        // Also match just the path/name part (e.g. "charizard" from "cobblemon:charizard"),
+        // so that users can enter bare species names in the config without the namespace prefix.
+        int colon = normalized.indexOf(':');
+        return colon >= 0 && blacklistedSpecies.contains(normalized.substring(colon + 1));
     }
 
     /**
      * Returns {@code true} if any of the species' labels match a blacklisted label.
      *
+     * <p>Matching is <b>case-insensitive</b>, so a config entry of {@code "Legendary"} will
+     * correctly match the Cobblemon label {@code "legendary"}.
+     *
      * @param labels the set of labels on a Pokémon species
      */
     public boolean isLabelBlacklisted(Set<String> labels) {
         for (String label : labels) {
-            if (blacklistedLabels.contains(label)) {
+            if (blacklistedLabels.contains(label.toLowerCase())) {
                 return true;
             }
         }
