@@ -1,0 +1,21 @@
+# Gradle build cache and wrapper
+.gradle/
+build/
+*/build/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Eclipse
+.classpath
+.project
+.settings/
+
+# Visual Studio Code
+.vscode/
+
+# macOS
+.DS_Store
