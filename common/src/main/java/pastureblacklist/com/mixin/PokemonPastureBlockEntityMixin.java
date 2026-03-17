@@ -3,17 +3,21 @@ package pastureblacklist.com.mixin;
 import com.cobblemon.mod.common.block.entity.PokemonPastureBlockEntity;
 import com.cobblemon.mod.common.pokemon.Pokemon;
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import pastureblacklist.com.PastureBlacklistMod;
+import pastureblacklist.com.SpeciesCountTracker;
 
 /**
- * Injects a blacklist check into {@link PokemonPastureBlockEntity#tether} before a Pokémon
- * is spawned into the world and linked to the pasture.
+ * Injects blacklist and species-cap checks into {@link PokemonPastureBlockEntity#tether}
+ * before a Pokémon is spawned into the world and linked to the pasture.
  *
  * <p>If the Pokémon is blacklisted:
  * <ol>
@@ -21,6 +25,19 @@ import pastureblacklist.com.PastureBlacklistMod;
  *   <li>The tether operation is cancelled (returns {@code false}), so the Pokémon remains
  *       in its original PC box/slot.</li>
  * </ol>
+ *
+ * <p>If the player has already reached the per-player species cap for that Pokémon:
+ * <ol>
+ *   <li>The player receives the cap-exceeded message.</li>
+ *   <li>The tether operation is cancelled in the same way.</li>
+ * </ol>
+ *
+ * <p>This class also maintains the {@link SpeciesCountTracker} registry by:
+ * <ul>
+ *   <li>Registering the pasture when it loads from disk ({@code loadAdditional}) or when
+ *       the first Pokémon is tethered to it ({@code tether} HEAD).</li>
+ *   <li>Deregistering the pasture when it is removed from the world ({@code setRemoved}).</li>
+ * </ul>
  *
  * <p>NOTE: If Cobblemon renames {@code PokemonPastureBlockEntity} or changes the
  * {@code tether} method signature in a future version, this mixin target and the
@@ -35,8 +52,14 @@ import pastureblacklist.com.PastureBlacklistMod;
 public class PokemonPastureBlockEntityMixin {
 
     /**
-     * Runs at the very start of {@code tether()}. If the Pokémon is on the blacklist the
-     * method is cancelled and the return value is set to {@code false} (failure).
+     * Runs at the very start of {@code tether()}.
+     *
+     * <ol>
+     *   <li>Registers this pasture in {@link SpeciesCountTracker} (idempotent).</li>
+     *   <li>If the Pokémon is on the blacklist, cancels the tether and notifies the player.</li>
+     *   <li>If the player has reached the species cap for this Pokémon, cancels the tether
+     *       and notifies the player with a separate cap-exceeded message.</li>
+     * </ol>
      */
     @Inject(method = "tether", at = @At("HEAD"), cancellable = true)
     private void pastureBlacklist$onTether(
@@ -45,6 +68,11 @@ public class PokemonPastureBlockEntityMixin {
             Direction directionToBehind,
             CallbackInfoReturnable<Boolean> cir) {
 
+        // Ensure this pasture is tracked so that species counts are accurate.
+        // This is a safety net for newly-placed pastures that have not yet been
+        // serialized (and therefore won't have had loadAdditional called).
+        SpeciesCountTracker.register((PokemonPastureBlockEntity) (Object) this);
+
         if (PastureBlacklistMod.isBlacklisted(pokemon)) {
             // Use a literal string so the message renders correctly even on a vanilla client
             // that does not have this mod installed. The message text is configurable in
@@ -52,6 +80,37 @@ public class PokemonPastureBlockEntityMixin {
             player.sendSystemMessage(
                     Component.literal(PastureBlacklistMod.getBlockedMessage()), true);
             cir.setReturnValue(false);
+            return;
         }
+
+        if (PastureBlacklistMod.isCapExceeded(player, pokemon)) {
+            player.sendSystemMessage(
+                    Component.literal(PastureBlacklistMod.getCapExceededMessage()), true);
+            cir.setReturnValue(false);
+        }
+    }
+
+    /**
+     * Registers this pasture in {@link SpeciesCountTracker} after its NBT data has been
+     * loaded (i.e. after {@code tetheredPokemon} has been populated). This covers the
+     * server-restart / chunk-load case where existing tethered Pokémon need to be visible
+     * to the cap-check scan.
+     */
+    @Inject(method = "loadAdditional", at = @At("RETURN"))
+    private void pastureBlacklist$onLoadAdditional(
+            CompoundTag nbt,
+            HolderLookup.Provider registryLookup,
+            CallbackInfo ci) {
+        SpeciesCountTracker.register((PokemonPastureBlockEntity) (Object) this);
+    }
+
+    /**
+     * Deregisters this pasture from {@link SpeciesCountTracker} when the block entity is
+     * removed from the world (block destroyed or chunk unloaded). This prevents stale
+     * references from skewing counts.
+     */
+    @Inject(method = "setRemoved", at = @At("HEAD"))
+    private void pastureBlacklist$onSetRemoved(CallbackInfo ci) {
+        SpeciesCountTracker.unregister((PokemonPastureBlockEntity) (Object) this);
     }
 }

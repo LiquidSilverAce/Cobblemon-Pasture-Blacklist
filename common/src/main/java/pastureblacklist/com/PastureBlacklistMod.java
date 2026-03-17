@@ -1,10 +1,14 @@
 package pastureblacklist.com;
 
 import com.cobblemon.mod.common.pokemon.Pokemon;
+import dev.architectury.event.events.common.LifecycleEvent;
 import dev.architectury.platform.Platform;
+import net.minecraft.server.level.ServerPlayer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import pastureblacklist.com.config.BlacklistConfig;
+
+import java.util.Optional;
 
 /**
  * Common entry point for the Cobblemon Pasture Blacklist mod.
@@ -29,6 +33,9 @@ public final class PastureBlacklistMod {
 
     public static void init() {
         config = BlacklistConfig.load(Platform.getConfigFolder());
+        // Clear any stale pasture registrations from a previous server session so that the
+        // first chunk loads of the new session populate SpeciesCountTracker cleanly.
+        LifecycleEvent.SERVER_STARTING.register(server -> SpeciesCountTracker.reset());
         LOGGER.info("[PastureBlacklist] Mod initialized.");
     }
 
@@ -65,5 +72,39 @@ public final class PastureBlacklistMod {
      */
     public static String getBlockedMessage() {
         return config != null ? config.getBlockedMessage() : "That Pokémon cannot be pastured.";
+    }
+
+    /**
+     * Returns {@code true} if the given player has already reached the per-player species cap
+     * for the given Pokémon's species across all currently loaded pastures.
+     *
+     * <p>The cap is read from the {@code speciesCaps} section of the config. If no cap is
+     * configured for the species, this method always returns {@code false}.
+     *
+     * @param player  the player attempting to tether the Pokémon
+     * @param pokemon the Pokémon being tethered
+     * @return {@code true} if the placement should be denied due to the species cap
+     */
+    public static boolean isCapExceeded(ServerPlayer player, Pokemon pokemon) {
+        if (config == null) {
+            LOGGER.warn("[PastureBlacklist] isCapExceeded() called before config was loaded; " +
+                    "skipping cap check.");
+            return false;
+        }
+        String speciesId = pokemon.getSpecies().getResourceIdentifier().toString().toLowerCase();
+        Optional<Integer> cap = config.getSpeciesCap(speciesId);
+        if (!cap.isPresent()) {
+            return false;
+        }
+        int currentCount = SpeciesCountTracker.countForPlayer(player.getUUID(), speciesId);
+        return currentCount >= cap.get();
+    }
+
+    /**
+     * Returns the message sent to the player when a species-cap placement is denied.
+     */
+    public static String getCapExceededMessage() {
+        return config != null ? config.getCapExceededMessage()
+                : "You already have the maximum allowed of that Pokémon in pastures.";
     }
 }

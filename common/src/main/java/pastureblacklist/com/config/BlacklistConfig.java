@@ -20,6 +20,10 @@ import java.util.*;
  *   <li>{@code blacklistedLabels} – species label strings,
  *       e.g. {@code "legendary"}, {@code "mythical"}, {@code "ultra_beast"}, {@code "paradox"}.
  *       Label constants are defined in {@code CobblemonPokemonLabels}.</li>
+ *   <li>{@code speciesCaps} – a JSON object mapping species IDs to maximum counts per player,
+ *       e.g. {@code "charizard": 2}.  Both bare names ({@code "charizard"}) and full resource
+ *       IDs ({@code "cobblemon:charizard"}) are accepted and matched case-insensitively.</li>
+ *   <li>{@code capExceededMessage} – message shown when a species-cap placement is denied.</li>
  * </ul>
  *
  * <p>NOTE: If Cobblemon changes its species ID format or label naming convention in a
@@ -34,6 +38,11 @@ public final class BlacklistConfig {
     private final Set<String> blacklistedSpecies = new HashSet<>();
     private final Set<String> blacklistedLabels = new HashSet<>();
     private String blockedMessage = "That Pokémon cannot be pastured.";
+
+    /** Maps a normalized (lower-cased) species key to its per-player cap. */
+    private final Map<String, Integer> speciesCaps = new HashMap<>();
+    private String capExceededMessage =
+            "You already have the maximum allowed of that Pokémon in pastures.";
 
     private BlacklistConfig() {}
 
@@ -71,11 +80,23 @@ public final class BlacklistConfig {
                 if (json != null && json.has("blockedMessage")) {
                     config.blockedMessage = json.get("blockedMessage").getAsString();
                 }
+                if (json != null && json.has("speciesCaps")) {
+                    JsonObject capsObj = json.getAsJsonObject("speciesCaps");
+                    for (Map.Entry<String, JsonElement> entry : capsObj.entrySet()) {
+                        config.speciesCaps.put(
+                                entry.getKey().toLowerCase(),
+                                entry.getValue().getAsInt());
+                    }
+                }
+                if (json != null && json.has("capExceededMessage")) {
+                    config.capExceededMessage = json.get("capExceededMessage").getAsString();
+                }
 
-                LOGGER.info("[PastureBlacklist] Loaded config from {}: {} species, {} labels blacklisted",
+                LOGGER.info("[PastureBlacklist] Loaded config from {}: {} species, {} labels blacklisted, {} species caps",
                         configFile,
                         config.blacklistedSpecies.size(),
-                        config.blacklistedLabels.size());
+                        config.blacklistedLabels.size(),
+                        config.speciesCaps.size());
             } catch (IOException | JsonParseException e) {
                 LOGGER.error("[PastureBlacklist] Failed to load config, falling back to defaults", e);
                 config.blacklistedLabels.add("legendary");
@@ -103,6 +124,15 @@ public final class BlacklistConfig {
             json.add("blacklistedLabels", labelsArray);
 
             json.addProperty("blockedMessage", blockedMessage);
+
+            // speciesCaps: empty object by default – add entries as needed.
+            JsonObject capsObj = new JsonObject();
+            for (Map.Entry<String, Integer> cap : speciesCaps.entrySet()) {
+                capsObj.addProperty(cap.getKey(), cap.getValue());
+            }
+            json.add("speciesCaps", capsObj);
+
+            json.addProperty("capExceededMessage", capExceededMessage);
 
             try (Writer writer = new OutputStreamWriter(
                     Files.newOutputStream(configFile), StandardCharsets.UTF_8)) {
@@ -162,5 +192,44 @@ public final class BlacklistConfig {
 
     public String getBlockedMessage() {
         return blockedMessage;
+    }
+
+    /**
+     * Returns the per-player cap for the given species, or {@link Optional#empty()} if no cap
+     * is configured for it.
+     *
+     * <p>Matching is <b>case-insensitive</b>. The {@code normalizedSpeciesId} should be the
+     * lower-cased full resource ID returned by Cobblemon (e.g. {@code "cobblemon:charizard"}).
+     * Config entries may be provided as either a full ID (e.g. {@code "cobblemon:charizard"})
+     * or a bare name (e.g. {@code "charizard"}); both forms match.
+     *
+     * @param normalizedSpeciesId lower-cased full resource ID of the species to check
+     * @return the maximum number of that species allowed per player, or empty if uncapped
+     */
+    public Optional<Integer> getSpeciesCap(String normalizedSpeciesId) {
+        // Try exact full-ID match first.
+        if (speciesCaps.containsKey(normalizedSpeciesId)) {
+            return Optional.of(speciesCaps.get(normalizedSpeciesId));
+        }
+        // Fall back to bare-name match (strip the "namespace:" prefix).
+        int colon = normalizedSpeciesId.indexOf(':');
+        if (colon >= 0) {
+            String bareName = normalizedSpeciesId.substring(colon + 1);
+            if (speciesCaps.containsKey(bareName)) {
+                return Optional.of(speciesCaps.get(bareName));
+            }
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * Returns the message sent to the player when a species-cap placement is denied.
+     */
+    public String getCapExceededMessage() {
+        return capExceededMessage;
+    }
+
+    public Map<String, Integer> getSpeciesCaps() {
+        return Collections.unmodifiableMap(speciesCaps);
     }
 }
