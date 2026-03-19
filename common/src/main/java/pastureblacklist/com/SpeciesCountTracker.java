@@ -1,10 +1,7 @@
 package pastureblacklist.com;
 
-import com.cobblemon.mod.common.Cobblemon;
-import com.cobblemon.mod.common.api.storage.pc.PCStore;
 import com.cobblemon.mod.common.block.entity.PokemonPastureBlockEntity;
 import com.cobblemon.mod.common.pokemon.Pokemon;
-import net.minecraft.server.level.ServerPlayer;
 
 import java.util.*;
 
@@ -70,36 +67,6 @@ public final class SpeciesCountTracker {
      */
     public static void unregister(PokemonPastureBlockEntity pasture) {
         activePastures.remove(pasture);
-    }
-
-    /**
-     * Counts the total number of Pokémon the given player currently has tethered across
-     * all pastures, regardless of species or chunk-load state.
-     *
-     * <p>Uses Cobblemon's own PC storage rather than the {@link #activePastures} registry so
-     * that pokemon in pastures whose chunks have not been loaded since the last server start
-     * are still counted correctly.  A pokemon is considered "tethered" when its
-     * {@code tetheringId} field is non-null, which Cobblemon sets in
-     * {@code PokemonPastureBlockEntity.tether()} and clears in {@code releasePokemon()}.
-     *
-     * @param player the server player to count for
-     * @return the total number of Pokémon tethered by that player
-     */
-    @SuppressWarnings("unchecked")
-    public static int countAllForPlayer(ServerPlayer player) {
-        int count = 0;
-        PCStore pc = Cobblemon.INSTANCE.getStorage().getPC(player);
-        // PCStore is a Kotlin class whose Iterable<Pokemon> compiles to java.lang.Iterable at
-        // the bytecode level, but the Java compiler requires kotlin-stdlib on the classpath to
-        // verify the KMappedMarker annotation at compile time.  Casting through Object bypasses
-        // that compile-time check without affecting runtime behaviour.
-        Iterable<Pokemon> pcIterable = (Iterable<Pokemon>) (Object) pc;
-        for (Pokemon pokemon : pcIterable) {
-            if (pokemon != null && pokemon.getTetheringId() != null) {
-                count++;
-            }
-        }
-        return count;
     }
 
     /**

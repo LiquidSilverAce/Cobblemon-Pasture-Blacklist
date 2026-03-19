@@ -7,6 +7,7 @@ license = "CC0-1.0"
 modId = "cobblemon_pasture_blacklist"
 version = "${version}"
 displayName = "Cobblemon Pasture Blacklist"
+displayTest = "IGNORE_ALL_VERSION"
 authors = "LiquidSilverAce"
 description = '''
 Server-side sidemod that prevents blacklisted Pokémon from being placed into a Pasture Block.
@@ -18,28 +19,28 @@ modId = "neoforge"
 type = "required"
 versionRange = "[21.1,)"
 ordering = "NONE"
-side = "BOTH"
+side = "SERVER"
 
 [[dependencies.cobblemon_pasture_blacklist]]
 modId = "minecraft"
 type = "required"
 versionRange = "[1.21.1,)"
 ordering = "NONE"
-side = "BOTH"
+side = "SERVER"
 
 [[dependencies.cobblemon_pasture_blacklist]]
 modId = "architectury"
 type = "required"
 versionRange = "[13.0.8,)"
 ordering = "AFTER"
-side = "BOTH"
+side = "SERVER"
 
 [[dependencies.cobblemon_pasture_blacklist]]
 modId = "cobblemon"
 type = "required"
 versionRange = "[1,)"
 ordering = "AFTER"
-side = "BOTH"
+side = "SERVER"
 
 [[mixins]]
 config = "cobblemon_pasture_blacklist.mixins.json"

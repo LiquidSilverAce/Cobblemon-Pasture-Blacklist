@@ -107,31 +107,4 @@ public final class PastureBlacklistMod {
         return config != null ? config.getCapExceededMessage()
                 : "You already have the maximum allowed of that Pokémon in pastures.";
     }
-
-    /**
-     * Returns {@code true} if the given player has already reached the total pasture limit
-     * (the maximum number of Pokémon they are allowed to have tethered across ALL pastures).
-     *
-     * <p>The limit is read from the {@code totalPastureLimit} field of the config (default 150).
-     *
-     * @param player the player attempting to tether a Pokémon
-     * @return {@code true} if adding another Pokémon would exceed the total limit
-     */
-    public static boolean isTotalLimitExceeded(ServerPlayer player) {
-        if (config == null) {
-            LOGGER.warn("[PastureBlacklist] isTotalLimitExceeded() called before config was loaded; " +
-                    "skipping total limit check.");
-            return false;
-        }
-        int currentTotal = SpeciesCountTracker.countAllForPlayer(player);
-        return currentTotal >= config.getTotalPastureLimit();
-    }
-
-    /**
-     * Returns the message sent to the player when the total pasture limit is exceeded.
-     */
-    public static String getTotalLimitMessage() {
-        return config != null ? config.getTotalLimitMessage()
-                : "You already have the maximum amount of allowed Pokemon in pastures!";
-    }
 }

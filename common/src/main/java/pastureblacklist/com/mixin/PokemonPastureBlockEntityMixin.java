@@ -32,13 +32,6 @@ import pastureblacklist.com.SpeciesCountTracker;
  *   <li>The tether operation is cancelled in the same way.</li>
  * </ol>
  *
- * <p>If the player has already reached the total pasture limit (max Pokémon across all
- * their pastures combined):
- * <ol>
- *   <li>The player receives the total-limit message.</li>
- *   <li>The tether operation is cancelled in the same way.</li>
- * </ol>
- *
  * <p>This class also maintains the {@link SpeciesCountTracker} registry by:
  * <ul>
  *   <li>Registering the pasture when it loads from disk ({@code loadAdditional}) or when
@@ -67,8 +60,6 @@ public class PokemonPastureBlockEntityMixin {
      * <ol>
      *   <li>Registers this pasture in {@link SpeciesCountTracker} (idempotent).</li>
      *   <li>If the Pokémon is on the blacklist, cancels the tether and notifies the player.</li>
-     *   <li>If the player has reached the total pasture limit, cancels the tether and
-     *       notifies the player with the total-limit message.</li>
      *   <li>If the player has reached the species cap for this Pokémon, cancels the tether
      *       and notifies the player with a separate cap-exceeded message.</li>
      * </ol>
@@ -95,18 +86,10 @@ public class PokemonPastureBlockEntityMixin {
             return;
         }
 
-        if (PastureBlacklistMod.isTotalLimitExceeded(player)) {
-            player.sendSystemMessage(
-                    Component.literal(PastureBlacklistMod.getTotalLimitMessage()), true);
-            cir.setReturnValue(false);
-            return;
-        }
-
         if (PastureBlacklistMod.isCapExceeded(player, pokemon)) {
             player.sendSystemMessage(
                     Component.literal(PastureBlacklistMod.getCapExceededMessage()), true);
             cir.setReturnValue(false);
-            return;
         }
     }
 
