@@ -1,7 +1,10 @@
 package pastureblacklist.com;
 
+import com.cobblemon.mod.common.Cobblemon;
+import com.cobblemon.mod.common.api.storage.pc.PCStore;
 import com.cobblemon.mod.common.block.entity.PokemonPastureBlockEntity;
 import com.cobblemon.mod.common.pokemon.Pokemon;
+import net.minecraft.server.level.ServerPlayer;
 
 import java.util.*;
 
@@ -71,18 +74,23 @@ public final class SpeciesCountTracker {
 
     /**
      * Counts the total number of Pokémon the given player currently has tethered across
-     * all registered pastures, regardless of species.
+     * all pastures, regardless of species or chunk-load state.
      *
-     * @param playerId the UUID of the player
+     * <p>Uses Cobblemon's own PC storage rather than the {@link #activePastures} registry so
+     * that pokemon in pastures whose chunks have not been loaded since the last server start
+     * are still counted correctly.  A pokemon is considered "tethered" when its
+     * {@code tetheringId} field is non-null, which Cobblemon sets in
+     * {@code PokemonPastureBlockEntity.tether()} and clears in {@code releasePokemon()}.
+     *
+     * @param player the server player to count for
      * @return the total number of Pokémon tethered by that player
      */
-    public static int countAllForPlayer(UUID playerId) {
+    public static int countAllForPlayer(ServerPlayer player) {
         int count = 0;
-        for (PokemonPastureBlockEntity pasture : new ArrayList<>(activePastures)) {
-            for (PokemonPastureBlockEntity.Tethering tethering : pasture.getTetheredPokemon()) {
-                if (tethering.getPlayerId().equals(playerId)) {
-                    count++;
-                }
+        PCStore pc = Cobblemon.INSTANCE.getStorage().getPC(player);
+        for (Pokemon pokemon : pc) {
+            if (pokemon != null && pokemon.getTetheringId() != null) {
+                count++;
             }
         }
         return count;

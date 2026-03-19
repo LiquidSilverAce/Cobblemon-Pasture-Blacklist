@@ -123,7 +123,7 @@ public final class PastureBlacklistMod {
                     "skipping total limit check.");
             return false;
         }
-        int currentTotal = SpeciesCountTracker.countAllForPlayer(player.getUUID());
+        int currentTotal = SpeciesCountTracker.countAllForPlayer(player);
         return currentTotal >= config.getTotalPastureLimit();
     }
 
