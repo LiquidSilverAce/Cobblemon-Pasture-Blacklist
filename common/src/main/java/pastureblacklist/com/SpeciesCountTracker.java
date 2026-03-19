@@ -70,6 +70,25 @@ public final class SpeciesCountTracker {
     }
 
     /**
+     * Counts the total number of Pokémon the given player currently has tethered across
+     * all registered pastures, regardless of species.
+     *
+     * @param playerId the UUID of the player
+     * @return the total number of Pokémon tethered by that player
+     */
+    public static int countAllForPlayer(UUID playerId) {
+        int count = 0;
+        for (PokemonPastureBlockEntity pasture : new ArrayList<>(activePastures)) {
+            for (PokemonPastureBlockEntity.Tethering tethering : pasture.getTetheredPokemon()) {
+                if (tethering.getPlayerId().equals(playerId)) {
+                    count++;
+                }
+            }
+        }
+        return count;
+    }
+
+    /**
      * Counts how many Pokémon of the given species the given player currently has tethered
      * across all loaded pastures.
      *

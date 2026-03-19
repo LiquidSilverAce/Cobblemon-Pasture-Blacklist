@@ -44,6 +44,11 @@ public final class BlacklistConfig {
     private String capExceededMessage =
             "You already have the maximum allowed of that Pokémon in pastures.";
 
+    /** Maximum total number of Pokémon any player may have tethered across all their pastures. */
+    private int totalPastureLimit = 150;
+    private String totalLimitMessage =
+            "You already have the maximum amount of allowed Pokemon in pastures!";
+
     private BlacklistConfig() {}
 
     /**
@@ -91,6 +96,12 @@ public final class BlacklistConfig {
                 if (json != null && json.has("capExceededMessage")) {
                     config.capExceededMessage = json.get("capExceededMessage").getAsString();
                 }
+                if (json != null && json.has("totalPastureLimit")) {
+                    config.totalPastureLimit = json.get("totalPastureLimit").getAsInt();
+                }
+                if (json != null && json.has("totalLimitMessage")) {
+                    config.totalLimitMessage = json.get("totalLimitMessage").getAsString();
+                }
 
                 LOGGER.info("[PastureBlacklist] Loaded config from {}: {} species, {} labels blacklisted, {} species caps",
                         configFile,
@@ -114,7 +125,10 @@ public final class BlacklistConfig {
             JsonObject json = new JsonObject();
 
             JsonArray speciesArray = new JsonArray();
-            // Default: no explicit species IDs (labels cover the common cases).
+            speciesArray.add("thievul");
+            speciesArray.add("gholdengo");
+            speciesArray.add("cetoddle");
+            speciesArray.add("wailmer");
             json.add("blacklistedSpecies", speciesArray);
 
             JsonArray labelsArray = new JsonArray();
@@ -125,14 +139,18 @@ public final class BlacklistConfig {
 
             json.addProperty("blockedMessage", blockedMessage);
 
-            // speciesCaps: empty object by default – add entries as needed.
             JsonObject capsObj = new JsonObject();
-            for (Map.Entry<String, Integer> cap : speciesCaps.entrySet()) {
-                capsObj.addProperty(cap.getKey(), cap.getValue());
-            }
+            capsObj.addProperty("gimmighoul", 30);
+            capsObj.addProperty("hydrapple", 30);
+            capsObj.addProperty("sableye", 30);
+            capsObj.addProperty("cetitan", 15);
+            capsObj.addProperty("wailord", 15);
             json.add("speciesCaps", capsObj);
 
             json.addProperty("capExceededMessage", capExceededMessage);
+
+            json.addProperty("totalPastureLimit", totalPastureLimit);
+            json.addProperty("totalLimitMessage", totalLimitMessage);
 
             try (Writer writer = new OutputStreamWriter(
                     Files.newOutputStream(configFile), StandardCharsets.UTF_8)) {
@@ -231,5 +249,20 @@ public final class BlacklistConfig {
 
     public Map<String, Integer> getSpeciesCaps() {
         return Collections.unmodifiableMap(speciesCaps);
+    }
+
+    /**
+     * Returns the maximum total number of Pokémon a player is allowed to have tethered
+     * across all their pastures combined. Defaults to 150.
+     */
+    public int getTotalPastureLimit() {
+        return totalPastureLimit;
+    }
+
+    /**
+     * Returns the message sent to the player when the total pasture limit is exceeded.
+     */
+    public String getTotalLimitMessage() {
+        return totalLimitMessage;
     }
 }
