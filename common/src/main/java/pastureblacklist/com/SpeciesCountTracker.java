@@ -85,10 +85,16 @@ public final class SpeciesCountTracker {
      * @param player the server player to count for
      * @return the total number of Pokémon tethered by that player
      */
+    @SuppressWarnings("unchecked")
     public static int countAllForPlayer(ServerPlayer player) {
         int count = 0;
         PCStore pc = Cobblemon.INSTANCE.getStorage().getPC(player);
-        for (Pokemon pokemon : pc) {
+        // PCStore is a Kotlin class whose Iterable<Pokemon> compiles to java.lang.Iterable at
+        // the bytecode level, but the Java compiler requires kotlin-stdlib on the classpath to
+        // verify the KMappedMarker annotation at compile time.  Casting through Object bypasses
+        // that compile-time check without affecting runtime behaviour.
+        Iterable<Pokemon> pcIterable = (Iterable<Pokemon>) (Object) pc;
+        for (Pokemon pokemon : pcIterable) {
             if (pokemon != null && pokemon.getTetheringId() != null) {
                 count++;
             }

@@ -106,6 +106,7 @@ public class PokemonPastureBlockEntityMixin {
             player.sendSystemMessage(
                     Component.literal(PastureBlacklistMod.getCapExceededMessage()), true);
             cir.setReturnValue(false);
+            return;
         }
     }
 
