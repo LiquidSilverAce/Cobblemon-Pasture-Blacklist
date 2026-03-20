@@ -58,8 +58,19 @@ public final class BlacklistConfig {
         Path configFile = configDir.resolve(CONFIG_FILE_NAME);
 
         if (!Files.exists(configFile)) {
+            // Populate all defaults in memory so the mod works correctly on the very first launch,
+            // before the server is restarted and the written file is read back.
+            config.blacklistedSpecies.add("thievul");
+            config.blacklistedSpecies.add("gholdengo");
+            config.blacklistedSpecies.add("cetoddle");
+            config.blacklistedSpecies.add("wailmer");
             config.blacklistedLabels.add("legendary");
             config.blacklistedLabels.add("mythical");
+            config.speciesCaps.put("gimmighoul", 30);
+            config.speciesCaps.put("hydrapple", 30);
+            config.speciesCaps.put("sableye", 30);
+            config.speciesCaps.put("cetitan", 15);
+            config.speciesCaps.put("wailord", 15);
             config.saveDefault(configFile);
             LOGGER.info("[PastureBlacklist] Created default config at {}", configFile);
         } else {
@@ -109,7 +120,10 @@ public final class BlacklistConfig {
 
     private void saveDefault(Path configFile) {
         try {
-            Files.createDirectories(configFile.getParent());
+            Path parent = configFile.getParent();
+            if (parent != null) {
+                Files.createDirectories(parent);
+            }
 
             JsonObject json = new JsonObject();
 
@@ -121,9 +135,8 @@ public final class BlacklistConfig {
             json.add("blacklistedSpecies", speciesArray);
 
             JsonArray labelsArray = new JsonArray();
-            for (String label : blacklistedLabels) {
-                labelsArray.add(label);
-            }
+            labelsArray.add("legendary");
+            labelsArray.add("mythical");
             json.add("blacklistedLabels", labelsArray);
 
             json.addProperty("blockedMessage", blockedMessage);
@@ -142,7 +155,7 @@ public final class BlacklistConfig {
                     Files.newOutputStream(configFile), StandardCharsets.UTF_8)) {
                 GSON.toJson(json, writer);
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             LOGGER.error("[PastureBlacklist] Failed to write default config", e);
         }
     }
