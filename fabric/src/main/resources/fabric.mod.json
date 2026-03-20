@@ -12,10 +12,13 @@
   },
   "license": "CC0-1.0",
   "icon": "assets/cobblemon_pasture_blacklist/icon.png",
-  "environment": "server",
+  "environment": "*",
   "entrypoints": {
     "main": [
       "pastureblacklist.com.fabric.ExampleModFabric"
+    ],
+    "client": [
+      "pastureblacklist.com.fabric.client.ExampleModFabricClient"
     ]
   },
   "mixins": [

@@ -8,7 +8,7 @@ import java.util.*;
 /**
  * Maintains a registry of all currently-loaded {@link PokemonPastureBlockEntity} instances
  * and counts how many Pokémon of a given species a given player currently has tethered
- * across ALL registered pastures (GLOBAL_PER_SPECIES semantics).
+ * across ALL loaded pastures (GLOBAL_PER_SPECIES semantics).
  *
  * <p>Pastures register themselves:
  * <ul>
@@ -20,21 +20,13 @@ import java.util.*;
  * </ul>
  *
  * <p>Pastures deregister themselves via {@link #unregister} in
- * {@code PokemonPastureBlockEntityMixin.onBroken()} when the block is explicitly broken.
- * Pastures in unloaded chunks are intentionally <em>kept</em> in the registry: their
- * tethering data persists in Cobblemon's server-side PC storage and can still be read by
- * {@link PokemonPastureBlockEntity.Tethering#getPokemon()}, so they contribute correctly
- * to the GLOBAL_PER_SPECIES count without requiring chunk-load awareness.
- *
- * <p>On each server start, {@link #reset()} clears any stale references from a previous
- * session so that subsequent {@code loadAdditional} calls repopulate the registry freshly.
+ * {@code PokemonPastureBlockEntityMixin.setRemoved()} when the chunk is unloaded or the
+ * block is destroyed.
  *
  * <p>All calls happen on the server thread, so no synchronization is required.
  *
- * <p>NOTE: {@code setRemoved()} on {@code BlockEntity} is intentionally <b>not</b> used as
- * the deregistration hook because {@code PokemonPastureBlockEntity} does not override it;
- * targeting an inherited, non-overridden method via Mixin with {@code defaultRequire = 1}
- * would crash the game on load.
+ * <p>NOTE: Only Pokémon in <em>currently loaded</em> pastures are counted. Pokémon in
+ * unloaded chunks are not visible to this tracker. This is an accepted limitation.
  */
 public final class SpeciesCountTracker {
 
@@ -61,7 +53,8 @@ public final class SpeciesCountTracker {
     }
 
     /**
-     * Unregisters a pasture block entity when its block is broken.
+     * Unregisters a pasture block entity when it is removed from the world or its chunk is
+     * unloaded.
      *
      * @param pasture the pasture to unregister
      */
