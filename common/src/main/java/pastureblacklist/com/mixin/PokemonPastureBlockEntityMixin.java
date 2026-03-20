@@ -36,7 +36,10 @@ import pastureblacklist.com.SpeciesCountTracker;
  * <ul>
  *   <li>Registering the pasture when it loads from disk ({@code loadAdditional}) or when
  *       the first Pokémon is tethered to it ({@code tether} HEAD).</li>
- *   <li>Deregistering the pasture when it is removed from the world ({@code setRemoved}).</li>
+ *   <li>Deregistering the pasture when the block is explicitly <em>broken</em>
+ *       ({@code onBroken}).  Chunk-unloaded pastures intentionally remain registered:
+ *       their tethering data is still accessible through Cobblemon's server-side PC
+ *       storage, so they contribute correctly to the GLOBAL_PER_SPECIES count.</li>
  * </ul>
  *
  * <p>NOTE: If Cobblemon renames {@code PokemonPastureBlockEntity} or changes the
@@ -105,12 +108,18 @@ public class PokemonPastureBlockEntityMixin {
     }
 
     /**
-     * Deregisters this pasture from {@link SpeciesCountTracker} when the block entity is
-     * removed from the world (block destroyed or chunk unloaded). This prevents stale
-     * references from skewing counts.
+     * Deregisters this pasture from {@link SpeciesCountTracker} when the pasture block is
+     * broken by a player or the world. Cobblemon's own {@code onBroken()} implementation
+     * has already released all tethered Pokémon by the time this injection runs, but we
+     * still remove the instance from the registry so it is not scanned in future cap checks.
+     *
+     * <p>We do <em>not</em> hook {@code setRemoved()} for this purpose: that method lives on
+     * the {@code BlockEntity} base class and is <b>not overridden</b> in
+     * {@code PokemonPastureBlockEntity}, so Mixin would fail to find it as a target with
+     * {@code defaultRequire = 1}, crashing the game on load.
      */
-    @Inject(method = "setRemoved", at = @At("HEAD"))
-    private void pastureBlacklist$onSetRemoved(CallbackInfo ci) {
+    @Inject(method = "onBroken", at = @At("HEAD"))
+    private void pastureBlacklist$onBroken(CallbackInfo ci) {
         SpeciesCountTracker.unregister((PokemonPastureBlockEntity) (Object) this);
     }
 }
